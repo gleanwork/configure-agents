@@ -1,0 +1,13 @@
+# AGENTS.md
+
+Agent instructions for `{{PACKAGE_NAME}}`. Human-facing documentation lives in `README.md`; this file is the entry point for AI coding agents working in this repository.
+
+## Development
+
+Describe how to build, test, run, and lint this project locally. Replace this section with the actual commands for this repo so an agent can verify its own changes.
+
+## Skills
+
+This repository ships an agent skill at `skills/SKILL.md` that teaches a consuming AI how to use `{{PACKAGE_NAME}}` correctly. It is distributed via `skills.sh`.
+
+When working in this repository, consult `skills/SKILL.md` and keep it accurate as the public API changes.

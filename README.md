@@ -1,68 +1,61 @@
-# gleanwork-claude-plugins
+# configure-agents
 
-Central configuration repository for managing Claude Code plugins across the gleanwork organization.
+`@gleanwork/configure-agents` gives gleanwork library and SDK repos a consistent, AI-friendly setup and keeps it from drifting. It scaffolds a small baseline into a repo and drift-checks that baseline in CI. It also ships the **authoring rubric** that constrains how the per-repo skills are written.
 
-## Purpose
+## Why
 
-This private repository serves as the central marketplace for deploying and managing Claude Code plugins used throughout gleanwork. The `.claude-plugin/marketplace.json` file defines which plugins are available and where they are sourced from.
+1. **Teach consumers' AI to use our libraries.** Each opted-in repo carries a `skills/SKILL.md` that teaches a consuming AI how to use that library correctly, so we stop hand-feeding the same context. Distribution is handled by [`skills.sh`](https://skills.sh) fetching from GitHub — this tool owns none of it.
+2. **Consistency across repos.** A uniform structure plus a scaffold to create it and a CI check to sustain it is what makes the setup maintainable across many repos.
 
-## Plugin Classifications
+## The baseline
 
-### 1. General (Org-wide) Plugins
+Each opted-in repo gets:
 
-Plugins intended for use across the entire gleanwork organization. These provide shared commands, agents, and skills that benefit all repositories.
+- `AGENTS.md` — the repo's real agent instructions.
+- `CLAUDE.md` — a thin pointer to `AGENTS.md`.
+- `skills/SKILL.md` — teaches a consuming AI to use the library; distributed via `skills.sh`.
+- `.github/workflows/agent-baseline.yml` — CI that runs the drift check on every PR.
 
-- **Location:** `gleanwork/.github`
-- **Scope:** Available to all repos in the gleanwork org
-- **Use cases:** Common workflows, org-wide conventions, shared tooling
+## Workflow (skill-driven)
 
-### 2. Repo-specific Plugins
+The intended path is AI-driven, through the authoring skill in `skills/configure-agents/`. Ask the AI to onboard the repo; it will:
 
-Plugins that live directly inside individual repositories. These provide commands, agents, and skills tailored to the specific needs of that repository.
+1. **Scaffold** — `npx -y @gleanwork/configure-agents init`
+2. **Author** `skills/SKILL.md` against the rubric (the one rule below)
+3. **Verify** — `npx -y @gleanwork/configure-agents check`
+4. **Open a PR** with the result
 
-- **Location:** Within each repo (e.g., `.claude/` or `.claude-plugin/` directory)
-- **Scope:** Specific to the containing repository
-- **Use cases:** Repo-specific build commands, custom testing workflows, project-specific agents
+Every step is safe to re-run.
 
-## Marketplace Configuration
+## Commands
 
-The marketplace is configured in `.claude-plugin/marketplace.json`. To add a new plugin:
+### `init`
 
-```json
-{
-  "plugins": [
-    {
-      "name": "plugin-name",
-      "source": {
-        "source": "github",
-        "repo": "gleanwork/repo-name"
-      },
-      "description": "Description of what the plugin provides"
-    }
-  ]
-}
-```
+Scaffolds the baseline into the current repo. Idempotent: it creates missing files and never overwrites your content.
 
-## Available Commands
+- `--lang <ts|python|go|java>` — override language detection (otherwise detected from the repo's manifest)
+- `--package <name>` — package name for the templates (defaults to the detected manifest name)
+- `--dryRun` — show what would be created without writing anything
 
-This repo includes a local plugin with commands for managing the marketplace:
+### `check`
 
-### `/add-plugin`
+Verifies the baseline structure and exits non-zero on violations (used by CI).
 
-Add a new plugin to the marketplace configuration.
+It checks, **structurally only**, that: the required files exist; `skills/SKILL.md` has `name`/`description` frontmatter and the required sections; `AGENTS.md` has its required sections; and `CLAUDE.md` references `AGENTS.md`. It does **not** — and cannot — validate that the skill's content is correct or current. That is the job of the rubric and of review.
 
-**Arguments:**
-- `plugin_name` - Name of the plugin
-- `source_repo` - GitHub repo path (e.g., `gleanwork/repo-name`)
-- `plugin_description` - Description of what the plugin provides
+## The one rule (the rubric)
 
-**Example:**
-```
-/add-plugin my-plugin gleanwork/my-repo "My custom plugin for X"
-```
+A skill's value is the *complement* of the API surface. Whatever the language's authoritative, ships-with-the-code definition already expresses — signatures, parameters, enums, return shapes — **reference it; never transcribe it**. A copied fact rots on the next release; a pointer to the types never does.
 
-## Current Plugins
+| Language | Point the skill at |
+|---|---|
+| TypeScript / JS | the `.d.ts` referenced by `types`/`exports` in `package.json` |
+| Python | inline type hints, `.pyi` stubs, the `py.typed` marker |
+| Go | exported identifiers in source / godoc |
+| Java | public classes and their Javadoc |
 
-| Plugin | Source | Description |
-|--------|--------|-------------|
-| gleanwork-org | gleanwork/.github | Gleanwork org-wide tools |
+The full rubric — required shape, section-by-section guidance, pitfalls, and a worked example — lives in [`skills/configure-agents/SKILL.md`](skills/configure-agents/SKILL.md).
+
+## Development
+
+See [`AGENTS.md`](AGENTS.md).
