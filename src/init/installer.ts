@@ -1,11 +1,14 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { CLAUDE_MUST_REFERENCE, README_PATH } from '../baseline/spec.js';
 import { buildInitFiles } from './files.js';
+import { applySkillsBlock, resolveRepoSlug } from './readme.js';
 
 export interface InitOptions {
   repoDir?: string;
   lang?: string;
   packageName?: string;
+  repo?: string;
   dryRun?: boolean;
 }
 
@@ -19,6 +22,9 @@ async function fileExists(target: string): Promise<boolean> {
   }
 }
 
+const MIGRATION_HINT =
+  'existing CLAUDE.md needs migration (run: configure-agents migrate)';
+
 export async function initializeRepo(options: InitOptions = {}): Promise<void> {
   const repoDir = path.resolve(options.repoDir ?? process.cwd());
 
@@ -28,37 +34,64 @@ export async function initializeRepo(options: InitOptions = {}): Promise<void> {
     packageName: options.packageName,
   });
 
+  const claudePath = path.join(repoDir, 'CLAUDE.md');
+  const existingClaude = (await fileExists(claudePath))
+    ? await fs.readFile(claudePath, 'utf8')
+    : null;
+  const agentsExists = await fileExists(path.join(repoDir, 'AGENTS.md'));
+  const needsMigration =
+    existingClaude !== null &&
+    !existingClaude.includes(CLAUDE_MUST_REFERENCE) &&
+    !agentsExists;
+
+  const slug = resolveRepoSlug(repoDir, options.repo);
+  const readmePath = path.join(repoDir, README_PATH);
+  const existingReadme = (await fileExists(readmePath))
+    ? await fs.readFile(readmePath, 'utf8')
+    : null;
+  const readme = applySkillsBlock(existingReadme, slug);
+
   if (options.dryRun) {
-    console.log('Files that would be created:');
+    console.log('Planned changes:');
 
     for (const file of files) {
-      console.log(`  ${file.path}`);
+      if (needsMigration && file.path === 'AGENTS.md') {
+        console.log(`  AGENTS.md (skip — ${MIGRATION_HINT})`);
+        continue;
+      }
+
+      const present = await fileExists(path.join(repoDir, file.path));
+      console.log(`  ${file.path} (${present ? 'skip, exists' : 'create'})`);
     }
+
+    console.log(`  ${README_PATH} (skills block: ${readme.status})`);
 
     return;
   }
 
-  let created = 0;
-  let skipped = 0;
-
   for (const file of files) {
+    if (needsMigration && file.path === 'AGENTS.md') {
+      console.log(`Skipping AGENTS.md — ${MIGRATION_HINT}`);
+      continue;
+    }
+
     const fullPath = path.join(repoDir, file.path);
 
     if (await fileExists(fullPath)) {
       console.log(`Skipping ${file.path} (already exists)`);
-      skipped += 1;
       continue;
     }
 
     await fs.mkdir(path.dirname(fullPath), { recursive: true });
     await fs.writeFile(fullPath, file.content, 'utf8');
-
     console.log(`Created ${file.path}`);
-    created += 1;
   }
 
-  console.log('');
-  console.log('Initialization complete:');
-  console.log(`  Created: ${created}`);
-  console.log(`  Skipped: ${skipped} (already exist)`);
+  if (readme.status === 'unchanged') {
+    console.log(`Skipping ${README_PATH} (skills block up to date)`);
+  } else {
+    await fs.writeFile(readmePath, readme.content, 'utf8');
+    const verb = readme.status === 'created' ? 'Created' : 'Updated';
+    console.log(`${verb} ${README_PATH} (skills block)`);
+  }
 }

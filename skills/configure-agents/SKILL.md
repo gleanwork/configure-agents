@@ -33,6 +33,17 @@ Run these steps to onboard or update a repo. Each is safe to re-run.
 
 4. **Open a PR** with the scaffolded files and your authored skill.
 
+## Migrating an existing CLAUDE.md
+
+If the repo already has a `CLAUDE.md` with real instructions (for example from `claude /init`) and no `AGENTS.md`, migrate before scaffolding:
+
+1. **Promote it** — `npx -y @gleanwork/configure-agents migrate`. This moves the existing `CLAUDE.md` content into `AGENTS.md`, ensures the required sections, and rewrites `CLAUDE.md` as a pointer (`@AGENTS.md`). It refuses if an `AGENTS.md` already exists — reconcile those by hand.
+2. **Scaffold the rest** — run `init` (above). It skips the now-correct `AGENTS.md`/`CLAUDE.md` and adds `skills/`, the CI workflow, and the README block.
+3. **Refine `AGENTS.md`** — fold any stub sections `migrate` added (e.g. a placeholder `## Development`) into the promoted content, and point the `## Skills` section at `skills/SKILL.md`.
+4. **Verify** — `npx -y @gleanwork/configure-agents check`.
+
+Run on its own, `init` detects this case and refuses to drop a competing `AGENTS.md` stub, pointing you here.
+
 ## The one rule: reference the API surface, never transcribe it
 
 A skill's value is the *complement* of the API surface. Whatever the language's authoritative, ships-with-the-code definition already expresses — signatures, parameters, enums, return shapes — **point at it; do not copy it**. A copied fact is a second source of truth that rots on the next release while the real one stays correct. A skill that catalogues method signatures is a bug.

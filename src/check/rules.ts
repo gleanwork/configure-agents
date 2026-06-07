@@ -2,6 +2,8 @@ import { parse as parseYaml } from 'yaml';
 import {
   AGENTS_REQUIRED_SECTIONS,
   CLAUDE_MUST_REFERENCE,
+  SKILLS_BLOCK_END,
+  SKILLS_BLOCK_START,
   SKILL_REQUIRED_FRONTMATTER,
   SKILL_REQUIRED_SECTIONS,
 } from '../baseline/spec.js';
@@ -98,4 +100,19 @@ export function checkClaude(file: string, content: string): Array<Violation> {
   return content.includes(CLAUDE_MUST_REFERENCE)
     ? []
     : [{ file, message: `must reference ${CLAUDE_MUST_REFERENCE}` }];
+}
+
+export function checkReadme(file: string, content: string): Array<Violation> {
+  const hasBlock =
+    content.includes(SKILLS_BLOCK_START) && content.includes(SKILLS_BLOCK_END);
+
+  return hasBlock
+    ? []
+    : [
+        {
+          file,
+          message:
+            'missing the skills-install block (run configure-agents init)',
+        },
+      ];
 }

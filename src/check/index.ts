@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { REQUIRED_FILES } from '../baseline/spec.js';
-import { checkAgents, checkClaude, checkSkill } from './rules.js';
+import { README_PATH, REQUIRED_FILES } from '../baseline/spec.js';
+import { checkAgents, checkClaude, checkReadme, checkSkill } from './rules.js';
 import type { Violation } from '../types/index.js';
 
 export interface CheckOptions {
@@ -46,6 +46,10 @@ export async function checkRepo(
 
     if (relativePath === 'skills/SKILL.md') {
       violations.push(...checkSkill(relativePath, content));
+    }
+
+    if (relativePath === README_PATH) {
+      violations.push(...checkReadme(relativePath, content));
     }
   }
 

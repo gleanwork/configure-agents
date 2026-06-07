@@ -33,10 +33,10 @@
     "lint": "eslint \"src/**/*.ts\"",
     "lint:ts": "tsc --noEmit",
     "prepare": "npm run build",
+    "pretest": "npm run build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "watch": "tsc -w",
-    "pretest": "npm run build"
+    "watch": "tsc -w"
   },
   "dependencies": {
     "commander": "^14.0.2",
@@ -45,6 +45,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
     "@eslint/js": "^9.32.0",
+    "@release-it-plugins/lerna-changelog": "^5.0.0",
     "@types/node": "^22.0.0",
     "@typescript-eslint/eslint-plugin": "^8.38.0",
     "@typescript-eslint/parser": "^8.38.0",
@@ -52,6 +53,7 @@
     "eslint": "^9.32.0",
     "globals": "^15.0.0",
     "prettier": "^3.6.2",
+    "release-it": "^15.5.0",
     "rimraf": "^6.0.1",
     "tsx": "^4.20.3",
     "typescript": "^5.8.2",
@@ -60,5 +62,20 @@
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
+  },
+  "release-it": {
+    "plugins": {
+      "@release-it-plugins/lerna-changelog": {
+        "infile": "CHANGELOG.md",
+        "launchEditor": true
+      }
+    },
+    "git": {
+      "tagName": "v${version}"
+    },
+    "github": {
+      "release": true,
+      "tokenRef": "GITHUB_AUTH"
+    }
   }
 }

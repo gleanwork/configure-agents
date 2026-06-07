@@ -4,6 +4,7 @@ import { Command } from 'commander';
 import { VERSION } from './common/version.js';
 import { initializeRepo } from './init/index.js';
 import { checkRepo } from './check/index.js';
+import { migrateRepo } from './migrate/index.js';
 
 const STRUCTURAL_NOTICE =
   'Structural checks only; this does not validate skill correctness or freshness.';
@@ -11,6 +12,7 @@ const STRUCTURAL_NOTICE =
 interface InitCliOptions {
   lang?: string;
   package?: string;
+  repo?: string;
   dryRun?: boolean;
 }
 
@@ -64,16 +66,36 @@ async function main(): Promise<void> {
       '--package <name>',
       'Package name to use in templates (defaults to the detected manifest name)',
     )
+    .option(
+      '--repo <slug>',
+      'owner/repo slug for the skills-install docs (defaults to the git remote)',
+    )
     .option('--dryRun', 'Show what would be created without writing anything')
     .action(async (options: InitCliOptions) => {
       try {
         await initializeRepo({
           lang: options.lang,
           packageName: options.package,
+          repo: options.repo,
           dryRun: Boolean(options.dryRun),
         });
       } catch (error: any) {
         console.error(`init failed: ${error.message}`);
+        process.exit(1);
+      }
+    });
+
+  program
+    .command('migrate')
+    .description(
+      'Promote an existing CLAUDE.md to AGENTS.md and leave a pointer (for repos set up before this baseline)',
+    )
+    .option('--dryRun', 'Show what would change without writing anything')
+    .action(async (options: { dryRun?: boolean }) => {
+      try {
+        await migrateRepo({ dryRun: Boolean(options.dryRun) });
+      } catch (error: any) {
+        console.error(`migrate failed: ${error.message}`);
         process.exit(1);
       }
     });

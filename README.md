@@ -16,9 +16,25 @@ Each opted-in repo gets:
 - `skills/SKILL.md` — teaches a consuming AI to use the library; distributed via `skills.sh`.
 - `.github/workflows/agent-baseline.yml` — CI that runs the drift check on every PR.
 
+<!-- configure-agents:skills start -->
+
+## Agent skills
+
+This repository ships agent skill(s) under `skills/`. Install them into your
+AI agent with [`npx skills`](https://github.com/agentskills/agentskills):
+
+```sh
+npx skills add -g gleanwork/configure-agents   # global — available in every repo
+npx skills add gleanwork/configure-agents      # or scoped to the current repo
+```
+
+<!-- configure-agents:skills end -->
+
+Once it's installed, ask your agent to onboard a repo (below) — you won't invoke the CLI by hand.
+
 ## Workflow (skill-driven)
 
-The intended path is AI-driven, through the authoring skill in `skills/configure-agents/`. Ask the AI to onboard the repo; it will:
+The intended path is AI-driven, through the `configure-agents` skill installed above. Ask the AI to onboard a repo; it will:
 
 1. **Scaffold** — `npx -y @gleanwork/configure-agents init`
 2. **Author** `skills/SKILL.md` against the rubric (the one rule below)
@@ -43,16 +59,20 @@ Verifies the baseline structure and exits non-zero on violations (used by CI).
 
 It checks, **structurally only**, that: the required files exist; `skills/SKILL.md` has `name`/`description` frontmatter and the required sections; `AGENTS.md` has its required sections; and `CLAUDE.md` references `AGENTS.md`. It does **not** — and cannot — validate that the skill's content is correct or current. That is the job of the rubric and of review.
 
+### `migrate`
+
+For a repo set up before this baseline (e.g. a `CLAUDE.md` written by `claude /init`, with no `AGENTS.md`), promotes the existing `CLAUDE.md` into `AGENTS.md` and rewrites `CLAUDE.md` as a pointer. Ensures the required `AGENTS.md` sections; refuses if an `AGENTS.md` already exists (reconcile by hand). `--dryRun` previews. Run `init` to scaffold the rest, then refine the promoted `AGENTS.md`. `init` also detects this case and won't drop a competing stub.
+
 ## The one rule (the rubric)
 
-A skill's value is the *complement* of the API surface. Whatever the language's authoritative, ships-with-the-code definition already expresses — signatures, parameters, enums, return shapes — **reference it; never transcribe it**. A copied fact rots on the next release; a pointer to the types never does.
+A skill's value is the _complement_ of the API surface. Whatever the language's authoritative, ships-with-the-code definition already expresses — signatures, parameters, enums, return shapes — **reference it; never transcribe it**. A copied fact rots on the next release; a pointer to the types never does.
 
-| Language | Point the skill at |
-|---|---|
+| Language        | Point the skill at                                            |
+| --------------- | ------------------------------------------------------------- |
 | TypeScript / JS | the `.d.ts` referenced by `types`/`exports` in `package.json` |
-| Python | inline type hints, `.pyi` stubs, the `py.typed` marker |
-| Go | exported identifiers in source / godoc |
-| Java | public classes and their Javadoc |
+| Python          | inline type hints, `.pyi` stubs, the `py.typed` marker        |
+| Go              | exported identifiers in source / godoc                        |
+| Java            | public classes and their Javadoc                              |
 
 The full rubric — required shape, section-by-section guidance, pitfalls, and a worked example — lives in [`skills/configure-agents/SKILL.md`](skills/configure-agents/SKILL.md).
 
