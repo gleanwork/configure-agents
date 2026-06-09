@@ -1,6 +1,6 @@
 {
   "name": "@gleanwork/configure-agents",
-  "version": "0.1.0",
+  "version": "0.5.0",
   "description": "Scaffold and drift-check the gleanwork agent baseline (AGENTS.md, CLAUDE.md, skills/) across library and SDK repos",
   "keywords": [
     "agents",
