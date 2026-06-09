@@ -108,7 +108,7 @@ describe('configure-agents CLI', () => {
 
     expect(read('skills/SKILL.md')).toMatchInlineSnapshot(`
       "---
-      name: fake-project
+      name: "fake-project"
       description: TODO replace with a one-line trigger (what it does plus when to use it) so an agent knows to load this skill when working with fake-project.
       ---
 

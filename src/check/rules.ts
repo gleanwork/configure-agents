@@ -29,36 +29,41 @@ function hasSection(markdown: string, section: string): boolean {
   return extractHeadings(markdown).some((heading) => heading.includes(needle));
 }
 
-function extractFrontmatter(
-  markdown: string,
-): Record<string, unknown> | undefined {
+type FrontmatterResult =
+  | { kind: 'missing' }
+  | { kind: 'invalid' }
+  | { kind: 'ok'; data: Record<string, unknown> };
+
+function parseFrontmatter(markdown: string): FrontmatterResult {
   const match = /^---\n([\s\S]*?)\n---/.exec(markdown);
 
   if (!match) {
-    return undefined;
+    return { kind: 'missing' };
   }
 
   try {
     const data = parseYaml(match[1]);
 
     return data && typeof data === 'object'
-      ? (data as Record<string, unknown>)
-      : {};
+      ? { kind: 'ok', data: data as Record<string, unknown> }
+      : { kind: 'invalid' };
   } catch {
-    return {};
+    return { kind: 'invalid' };
   }
 }
 
 export function checkSkill(file: string, content: string): Array<Violation> {
   const violations: Array<Violation> = [];
 
-  const frontmatter = extractFrontmatter(content);
+  const frontmatter = parseFrontmatter(content);
 
-  if (!frontmatter) {
+  if (frontmatter.kind === 'missing') {
     violations.push({ file, message: 'missing YAML frontmatter (--- block)' });
+  } else if (frontmatter.kind === 'invalid') {
+    violations.push({ file, message: 'frontmatter is not valid YAML' });
   } else {
     for (const key of SKILL_REQUIRED_FRONTMATTER) {
-      const value = frontmatter[key];
+      const value = frontmatter.data[key];
 
       if (typeof value !== 'string' || value.trim().length === 0) {
         violations.push({

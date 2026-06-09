@@ -26,7 +26,7 @@ async function loadRawTemplate(name: TemplateName): Promise<string> {
     return cached;
   }
 
-  const raw = await fs.readFile(path.join(FILES_DIR, name), 'utf8');
+  const raw = await fs.readFile(path.join(FILES_DIR, `${name}.tmpl`), 'utf8');
 
   cache.set(name, raw);
 

@@ -1,6 +1,6 @@
 ---
 name: configure-agents
-description: Configure the gleanwork agent baseline in a library or SDK repo — scaffold AGENTS.md, a CLAUDE.md pointer, and skills/, author the library's SKILL.md, and verify it in CI. Use when onboarding a gleanwork OSS repo to the agent setup, adding AGENTS.md or a skill to a repo, or writing/updating the SKILL.md that teaches a consuming AI to use the library. Drives the @gleanwork/configure-agents CLI and encodes the one rule: reference the authoritative API surface, never transcribe it.
+description: Configure the gleanwork agent baseline in a library or SDK repo — scaffold AGENTS.md, a CLAUDE.md pointer, and skills/, author the library's SKILL.md, and verify it in CI. Use when onboarding a gleanwork OSS repo to the agent setup, adding AGENTS.md or a skill to a repo, or writing/updating the SKILL.md that teaches a consuming AI to use the library. Drives the @gleanwork/configure-agents CLI and encodes the one rule of referencing the authoritative API surface rather than transcribing it.
 ---
 
 # Configure agent infrastructure for a gleanwork repo
@@ -78,6 +78,7 @@ Sections (all required; `check` enforces their presence):
 ## Common pitfalls
 
 - A vague `description` that never triggers. Lead with the concrete intents and imports.
+- Invalid YAML frontmatter. A bare colon-space (`: `) in an unquoted `description` breaks it, as do values starting with `@`, `{`, `[`, `*`, or `&`. Quote the value when unsure.
 - Transcribing the API. If you typed a signature, delete it and point at the types.
 - No "Common mistakes." This is often the highest-value section — pure judgment an agent can't derive.
 - Hardcoded versions. They go stale immediately; tell the reader how to check instead.
