@@ -20,7 +20,7 @@
   },
   "main": "./build/index.js",
   "bin": {
-    "configure-agents": "./build/index.js"
+    "configure-agents": "build/index.js"
   },
   "files": [
     "build"
