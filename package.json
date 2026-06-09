@@ -45,7 +45,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
     "@eslint/js": "^9.32.0",
-    "@release-it-plugins/lerna-changelog": "^5.0.0",
+    "@release-it-plugins/lerna-changelog": "^8.0.1",
     "@types/node": "^22.0.0",
     "@typescript-eslint/eslint-plugin": "^8.38.0",
     "@typescript-eslint/parser": "^8.38.0",
@@ -53,7 +53,7 @@
     "eslint": "^9.32.0",
     "globals": "^15.0.0",
     "prettier": "^3.6.2",
-    "release-it": "^15.5.0",
+    "release-it": "^20.2.0",
     "rimraf": "^6.0.1",
     "tsx": "^4.20.3",
     "typescript": "^5.8.2",
@@ -77,5 +77,8 @@
       "release": true,
       "tokenRef": "GITHUB_AUTH"
     }
+  },
+  "overrides": {
+    "tmp": "^0.2.7"
   }
 }
