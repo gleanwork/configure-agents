@@ -33,8 +33,15 @@ function sectionStub(section: string): string {
     : 'TODO describe how to build, test, run, and lint this project locally.';
 }
 
+// `claude /init` titles the file `# CLAUDE.md`. Once promoted into AGENTS.md
+// that H1 is wrong, so rewrite it. A meaningful title (anything other than the
+// literal `CLAUDE.md`) is left alone.
+function retitleClaudeHeading(markdown: string): string {
+  return markdown.replace(/^(#{1,6})[ \t]+CLAUDE\.md[ \t]*$/im, '$1 AGENTS.md');
+}
+
 function promoteToAgents(claude: string): string {
-  let result = claude.replace(/\s+$/, '');
+  let result = retitleClaudeHeading(claude.replace(/\s+$/, ''));
 
   for (const section of AGENTS_REQUIRED_SECTIONS) {
     if (!hasHeading(result, section)) {

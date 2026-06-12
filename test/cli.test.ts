@@ -157,6 +157,46 @@ describe('configure-agents CLI', () => {
     expect(read('skills/SKILL.md')).toContain('public, typed surface');
   });
 
+  // fixturify-project always materializes a package.json from its internal pkg,
+  // and the resolver consults package.json first, so these fallback-manifest
+  // tests add the manifest via project.write and then drop the package.json.
+  it('init resolves the package name from pyproject [project].name (over poetry)', async () => {
+    await project.write({
+      'pyproject.toml':
+        '[project]\nname = "glean-api-client"\n\n[tool.poetry]\nname = "wrong-poetry-name"\n',
+    });
+    fs.rmSync(path.join(project.baseDir, 'package.json'));
+
+    await runBin('init', '--repo', 'gleanwork/demo');
+
+    const skill = read('skills/SKILL.md');
+    expect(skill).toContain('name: "glean-api-client"');
+    expect(skill).toContain('# glean-api-client');
+    expect(skill).not.toContain('wrong-poetry-name');
+  });
+
+  it('init resolves the package name from the go.mod module path', async () => {
+    await project.write({
+      'go.mod': 'module github.com/gleanwork/api-client-go\n\ngo 1.22\n',
+    });
+    fs.rmSync(path.join(project.baseDir, 'package.json'));
+
+    await runBin('init', '--repo', 'gleanwork/demo');
+
+    expect(read('skills/SKILL.md')).toContain('name: "api-client-go"');
+  });
+
+  it('init resolves the package name from gradle rootProject.name', async () => {
+    await project.write({
+      'settings.gradle': "rootProject.name = 'glean-api-client'\n",
+    });
+    fs.rmSync(path.join(project.baseDir, 'package.json'));
+
+    await runBin('init', '--repo', 'gleanwork/demo');
+
+    expect(read('skills/SKILL.md')).toContain('name: "glean-api-client"');
+  });
+
   it('init writes the skills-install block to the README', async () => {
     await runBin('init', '--repo', 'gleanwork/demo');
 
@@ -167,11 +207,7 @@ describe('configure-agents CLI', () => {
   });
 
   it('init appends the block to an existing README without clobbering it', async () => {
-    fs.writeFileSync(
-      path.join(project.baseDir, 'README.md'),
-      '# my lib\n\nHand-written intro.\n',
-      'utf8',
-    );
+    await project.write({ 'README.md': '# my lib\n\nHand-written intro.\n' });
 
     await runBin('init', '--repo', 'gleanwork/demo');
 
@@ -206,11 +242,14 @@ describe('configure-agents CLI', () => {
   it('check fails when a required section drifts', async () => {
     await runBin('init', '--repo', 'gleanwork/demo');
 
-    const skillPath = path.join(project.baseDir, 'skills/SKILL.md');
-    fs.writeFileSync(
-      skillPath,
-      read('skills/SKILL.md').replace('## Authoritative API', '## Renamed'),
-    );
+    await project.write({
+      skills: {
+        'SKILL.md': read('skills/SKILL.md').replace(
+          '## Authoritative API',
+          '## Renamed',
+        ),
+      },
+    });
 
     const result = await runBin('check');
 
@@ -225,11 +264,7 @@ describe('configure-agents CLI', () => {
 
   it('check fails when the README is missing the skills block', async () => {
     await runBin('init', '--repo', 'gleanwork/demo');
-    fs.writeFileSync(
-      path.join(project.baseDir, 'README.md'),
-      '# my lib\n\nno block here\n',
-      'utf8',
-    );
+    await project.write({ 'README.md': '# my lib\n\nno block here\n' });
 
     const result = await runBin('check');
 
@@ -254,31 +289,35 @@ describe('configure-agents CLI', () => {
   });
 
   it('migrate promotes an existing CLAUDE.md to AGENTS.md and leaves a pointer', async () => {
-    fs.writeFileSync(
-      path.join(project.baseDir, 'CLAUDE.md'),
-      '# CLAUDE.md\n\nRun `npm test` to test this project.\n',
-      'utf8',
-    );
+    await project.write({
+      'CLAUDE.md': '# CLAUDE.md\n\nRun `npm test` to test this project.\n',
+    });
 
     const result = await runBin('migrate');
 
     expect(result.exitCode).toBe(0);
     expect(read('AGENTS.md')).toContain('Run `npm test` to test this project.');
     expect(read('AGENTS.md')).toContain('## Skills');
+    expect(read('AGENTS.md')).toContain('# AGENTS.md');
+    expect(read('AGENTS.md')).not.toContain('# CLAUDE.md');
     expect(read('CLAUDE.md')).toContain('AGENTS.md');
   });
 
+  it('migrate keeps a meaningful CLAUDE.md title intact', async () => {
+    await project.write({
+      'CLAUDE.md': '# Glean CLI — Development Rules\n\nLegacy instructions.\n',
+    });
+
+    await runBin('migrate');
+
+    expect(read('AGENTS.md')).toContain('# Glean CLI — Development Rules');
+  });
+
   it('migrate refuses when AGENTS.md already exists', async () => {
-    fs.writeFileSync(
-      path.join(project.baseDir, 'CLAUDE.md'),
-      '# old\n\nlegacy\n',
-      'utf8',
-    );
-    fs.writeFileSync(
-      path.join(project.baseDir, 'AGENTS.md'),
-      '# AGENTS.md\n',
-      'utf8',
-    );
+    await project.write({
+      'CLAUDE.md': '# old\n\nlegacy\n',
+      'AGENTS.md': '# AGENTS.md\n',
+    });
 
     const result = await runBin('migrate');
 
@@ -287,11 +326,7 @@ describe('configure-agents CLI', () => {
   });
 
   it('migrate is a no-op when CLAUDE.md already points to AGENTS.md', async () => {
-    fs.writeFileSync(
-      path.join(project.baseDir, 'CLAUDE.md'),
-      '# CLAUDE.md\n\n@AGENTS.md\n',
-      'utf8',
-    );
+    await project.write({ 'CLAUDE.md': '# CLAUDE.md\n\n@AGENTS.md\n' });
 
     const result = await runBin('migrate');
 
@@ -300,11 +335,7 @@ describe('configure-agents CLI', () => {
   });
 
   it('migrate --dryRun writes nothing', async () => {
-    fs.writeFileSync(
-      path.join(project.baseDir, 'CLAUDE.md'),
-      '# old\n\nlegacy\n',
-      'utf8',
-    );
+    await project.write({ 'CLAUDE.md': '# old\n\nlegacy\n' });
 
     const result = await runBin('migrate', '--dryRun');
 
@@ -314,11 +345,9 @@ describe('configure-agents CLI', () => {
   });
 
   it('init refuses to create AGENTS.md when an un-migrated CLAUDE.md exists', async () => {
-    fs.writeFileSync(
-      path.join(project.baseDir, 'CLAUDE.md'),
-      '# CLAUDE.md\n\nLegacy instructions.\n',
-      'utf8',
-    );
+    await project.write({
+      'CLAUDE.md': '# CLAUDE.md\n\nLegacy instructions.\n',
+    });
 
     const result = await runBin('init', '--repo', 'gleanwork/demo');
 
