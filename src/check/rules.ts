@@ -1,7 +1,7 @@
 import { parse as parseYaml } from 'yaml';
 import {
   AGENTS_REQUIRED_SECTIONS,
-  CLAUDE_MUST_REFERENCE,
+  CLAUDE_POINTER_DIRECTIVE,
   SKILLS_BLOCK_END,
   SKILLS_BLOCK_START,
   SKILL_REQUIRED_FRONTMATTER,
@@ -102,9 +102,14 @@ export function checkAgents(file: string, content: string): Array<Violation> {
 }
 
 export function checkClaude(file: string, content: string): Array<Violation> {
-  return content.includes(CLAUDE_MUST_REFERENCE)
+  return content.includes(CLAUDE_POINTER_DIRECTIVE)
     ? []
-    : [{ file, message: `must reference ${CLAUDE_MUST_REFERENCE}` }];
+    : [
+        {
+          file,
+          message: `must import AGENTS.md via \`${CLAUDE_POINTER_DIRECTIVE}\``,
+        },
+      ];
 }
 
 export function checkReadme(file: string, content: string): Array<Violation> {

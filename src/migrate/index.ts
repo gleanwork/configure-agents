@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {
   AGENTS_REQUIRED_SECTIONS,
-  CLAUDE_MUST_REFERENCE,
+  CLAUDE_POINTER_DIRECTIVE,
 } from '../baseline/spec.js';
 import { loadTemplate } from '../init/templates/index.js';
 
@@ -33,9 +33,6 @@ function sectionStub(section: string): string {
     : 'TODO describe how to build, test, run, and lint this project locally.';
 }
 
-// `claude /init` titles the file `# CLAUDE.md`. Once promoted into AGENTS.md
-// that H1 is wrong, so rewrite it. A meaningful title (anything other than the
-// literal `CLAUDE.md`) is left alone.
 function retitleClaudeHeading(markdown: string): string {
   return markdown.replace(/^(#{1,6})[ \t]+CLAUDE\.md[ \t]*$/im, '$1 AGENTS.md');
 }
@@ -77,7 +74,7 @@ export async function migrateRepo(
 
   const claude = await fs.readFile(claudePath, 'utf8');
 
-  if (claude.includes(CLAUDE_MUST_REFERENCE)) {
+  if (claude.includes(CLAUDE_POINTER_DIRECTIVE)) {
     console.log('CLAUDE.md already points to AGENTS.md; nothing to migrate.');
 
     return 'already-pointer';

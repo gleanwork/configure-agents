@@ -27,4 +27,4 @@ export const SKILL_REQUIRED_SECTIONS = [
 
 export const AGENTS_REQUIRED_SECTIONS = ['Development', 'Skills'];
 
-export const CLAUDE_MUST_REFERENCE = 'AGENTS.md';
+export const CLAUDE_POINTER_DIRECTIVE = '@AGENTS.md';

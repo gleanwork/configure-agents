@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { CLAUDE_MUST_REFERENCE, README_PATH } from '../baseline/spec.js';
+import { CLAUDE_POINTER_DIRECTIVE, README_PATH } from '../baseline/spec.js';
 import { buildInitFiles } from './files.js';
 import { applySkillsBlock, resolveRepoSlug } from './readme.js';
 
@@ -41,7 +41,7 @@ export async function initializeRepo(options: InitOptions = {}): Promise<void> {
   const agentsExists = await fileExists(path.join(repoDir, 'AGENTS.md'));
   const needsMigration =
     existingClaude !== null &&
-    !existingClaude.includes(CLAUDE_MUST_REFERENCE) &&
+    !existingClaude.includes(CLAUDE_POINTER_DIRECTIVE) &&
     !agentsExists;
 
   const slug = resolveRepoSlug(repoDir, options.repo);

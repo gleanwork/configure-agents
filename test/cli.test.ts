@@ -313,6 +313,45 @@ describe('configure-agents CLI', () => {
     expect(read('AGENTS.md')).toContain('# Glean CLI — Development Rules');
   });
 
+  it('migrate promotes when CLAUDE.md only mentions AGENTS.md in prose (not a pointer)', async () => {
+    await project.write({
+      'CLAUDE.md':
+        '# CLAUDE.md\n\nRun the tool to create an AGENTS.md file for your project.\n',
+    });
+
+    const result = await runBin('migrate');
+
+    expect(result.exitCode).toBe(0);
+    expect(read('AGENTS.md')).toContain(
+      'create an AGENTS.md file for your project',
+    );
+    expect(read('CLAUDE.md')).toContain('@AGENTS.md');
+  });
+
+  it('init treats a prose mention of AGENTS.md as un-migrated (not a pointer)', async () => {
+    await project.write({
+      'CLAUDE.md':
+        '# CLAUDE.md\n\nThe init command can create an AGENTS.md file.\n',
+    });
+
+    const result = await runBin('init', '--repo', 'gleanwork/demo');
+
+    expect(result.stdout).toContain('needs migration');
+    expect(exists('AGENTS.md')).toBe(false);
+  });
+
+  it('check fails when CLAUDE.md mentions AGENTS.md but does not import it', async () => {
+    await runBin('init', '--repo', 'gleanwork/demo');
+    await project.write({
+      'CLAUDE.md': '# CLAUDE.md\n\nSee AGENTS.md for details.\n',
+    });
+
+    const result = await runBin('check');
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stdout).toContain('must import AGENTS.md');
+  });
+
   it('migrate refuses when AGENTS.md already exists', async () => {
     await project.write({
       'CLAUDE.md': '# old\n\nlegacy\n',
