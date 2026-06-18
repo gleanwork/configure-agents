@@ -14,6 +14,7 @@ export type TemplateName =
 
 export interface TemplateVariables {
   packageName: string;
+  skillName: string;
   apiPointer: string;
 }
 
@@ -36,6 +37,7 @@ async function loadRawTemplate(name: TemplateName): Promise<string> {
 function substitute(content: string, variables: TemplateVariables): string {
   return content
     .replaceAll('{{PACKAGE_NAME}}', variables.packageName)
+    .replaceAll('{{SKILL_NAME}}', variables.skillName)
     .replaceAll('{{API_POINTER}}', variables.apiPointer);
 }
 

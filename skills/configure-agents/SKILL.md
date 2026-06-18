@@ -5,9 +5,9 @@ description: Configure the gleanwork agent baseline in a library or SDK repo —
 
 # Configure agent infrastructure for a gleanwork repo
 
-This skill sets up a consistent agent configuration in a gleanwork library or SDK repo: a scaffolded baseline (`AGENTS.md`, a thin `CLAUDE.md` pointer, and a CI drift check) plus a hand-authored `skills/SKILL.md` that teaches a *consuming* AI how to use the library correctly.
+This skill sets up a consistent agent configuration in a gleanwork library or SDK repo: a scaffolded baseline (`AGENTS.md`, a thin `CLAUDE.md` pointer, and a CI drift check) plus a hand-authored skill (`skills/<name>/SKILL.md`) that teaches a _consuming_ AI how to use the library correctly.
 
-It drives the `@gleanwork/configure-agents` CLI for the deterministic parts (scaffold + check) and guides you through the one part that needs judgment: authoring the skill. Nothing here requires cloning the `configure-agents` repo — the CLI runs opaquely via `npx`, and distribution of the finished `skills/SKILL.md` is handled by `skills.sh`.
+It drives the `@gleanwork/configure-agents` CLI for the deterministic parts (scaffold + check) and guides you through the one part that needs judgment: authoring the skill. Nothing here requires cloning the `configure-agents` repo — the CLI runs opaquely via `npx`, and distribution of the finished skill is handled by `skills.sh`.
 
 ## Workflow
 
@@ -19,9 +19,9 @@ Run these steps to onboard or update a repo. Each is safe to re-run.
    npx -y @gleanwork/configure-agents init
    ```
 
-   Creates `AGENTS.md`, a `CLAUDE.md` that points to it, a starter `skills/SKILL.md`, and a CI workflow that runs the drift check. It detects the repo language to fill the "Authoritative API" pointer; override with `--lang <ts|python|go|java>`, set the package name with `--package <name>`, and preview with `--dryRun`.
+   Creates `AGENTS.md`, a `CLAUDE.md` that points to it, a starter `skills/<name>/SKILL.md` (the directory is named after the package), and a CI workflow that runs the drift check. It detects the repo language to fill the "Authoritative API" pointer; override with `--lang <ts|python|go|java>`, set the package name with `--package <name>`, and preview with `--dryRun`.
 
-2. **Author `skills/SKILL.md`** against the rules below. Fill every `TODO`. Read the repo's own types/source first — you are describing *this* library, not a generic one.
+2. **Author the skill** (`skills/<name>/SKILL.md`) against the rules below. Fill every `TODO`. Read the repo's own types/source first — you are describing _this_ library, not a generic one.
 
 3. **Verify structure:**
 
@@ -39,31 +39,33 @@ If the repo already has a `CLAUDE.md` with real instructions (for example from `
 
 1. **Promote it** — `npx -y @gleanwork/configure-agents migrate`. This moves the existing `CLAUDE.md` content into `AGENTS.md`, ensures the required sections, and rewrites `CLAUDE.md` as a pointer (`@AGENTS.md`). It refuses if an `AGENTS.md` already exists — reconcile those by hand.
 2. **Scaffold the rest** — run `init` (above). It skips the now-correct `AGENTS.md`/`CLAUDE.md` and adds `skills/`, the CI workflow, and the README block.
-3. **Refine `AGENTS.md`** — fold any stub sections `migrate` added (e.g. a placeholder `## Development`) into the promoted content, and point the `## Skills` section at `skills/SKILL.md`.
+3. **Refine `AGENTS.md`** — fold any stub sections `migrate` added (e.g. a placeholder `## Development`) into the promoted content, and point the `## Skills` section at the skill under `skills/`.
 4. **Verify** — `npx -y @gleanwork/configure-agents check`.
 
 Run on its own, `init` detects this case and refuses to drop a competing `AGENTS.md` stub, pointing you here.
 
 ## The one rule: reference the API surface, never transcribe it
 
-A skill's value is the *complement* of the API surface. Whatever the language's authoritative, ships-with-the-code definition already expresses — signatures, parameters, enums, return shapes — **point at it; do not copy it**. A copied fact is a second source of truth that rots on the next release while the real one stays correct. A skill that catalogues method signatures is a bug.
+A skill's value is the _complement_ of the API surface. Whatever the language's authoritative, ships-with-the-code definition already expresses — signatures, parameters, enums, return shapes — **point at it; do not copy it**. A copied fact is a second source of truth that rots on the next release while the real one stays correct. A skill that catalogues method signatures is a bug.
 
 Point the consuming AI at the authoritative surface for the repo's language:
 
-| Language | Point at |
-|---|---|
+| Language        | Point at                                                                            |
+| --------------- | ----------------------------------------------------------------------------------- |
 | TypeScript / JS | the `.d.ts` referenced by `types`/`exports` in `package.json` (often under `dist/`) |
-| Python | inline type hints, `.pyi` stubs, the `py.typed` marker |
-| Go | exported identifiers in source / godoc on pkg.go.dev |
-| Java | public classes and their Javadoc |
+| Python          | inline type hints, `.pyi` stubs, the `py.typed` marker                              |
+| Go              | exported identifiers in source / godoc on pkg.go.dev                                |
+| Java            | public classes and their Javadoc                                                    |
 
-Write down only what is **not** in the types: the *why*, correct sequencing, auth setup, which option to choose, and the mistakes agents make. That content changes slowly and stays fresh on its own; revisit it when public behavior changes.
+Write down only what is **not** in the types: the _why_, correct sequencing, auth setup, which option to choose, and the mistakes agents make. That content changes slowly and stays fresh on its own; revisit it when public behavior changes.
 
-## Required shape of `skills/SKILL.md`
+## Required shape of the skill
+
+Each skill is its own directory — `skills/<skill-name>/SKILL.md` — and the directory name **is** the skill name. A repo may ship more than one.
 
 Frontmatter (both required):
 
-- `name` — short, kebab-case.
+- `name` — lowercase letters, numbers, and hyphens only; must match the skill's directory name. No `@scope`, and it cannot contain `claude` or `anthropic`.
 - `description` — one line, "what it does + when to use it," so an agent knows when to load the skill. This is the single biggest factor in whether the skill ever fires.
 
 Sections (all required; `check` enforces their presence):

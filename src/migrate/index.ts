@@ -29,7 +29,7 @@ function hasHeading(markdown: string, section: string): boolean {
 
 function sectionStub(section: string): string {
   return section === 'Skills'
-    ? 'This repository ships an agent skill at `skills/SKILL.md`. Keep it accurate as the public API changes.'
+    ? 'This repository ships an agent skill under `skills/` (one directory per skill: `skills/<name>/SKILL.md`). Keep it accurate as the public API changes.'
     : 'TODO describe how to build, test, run, and lint this project locally.';
 }
 
@@ -100,6 +100,7 @@ export async function migrateRepo(
 
   const pointer = await loadTemplate('CLAUDE.md', {
     packageName: '',
+    skillName: '',
     apiPointer: '',
   });
 

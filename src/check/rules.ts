@@ -2,8 +2,11 @@ import { parse as parseYaml } from 'yaml';
 import {
   AGENTS_REQUIRED_SECTIONS,
   CLAUDE_POINTER_DIRECTIVE,
+  RESERVED_SKILL_NAME_WORDS,
   SKILLS_BLOCK_END,
   SKILLS_BLOCK_START,
+  SKILL_NAME_MAX_LENGTH,
+  SKILL_NAME_PATTERN,
   SKILL_REQUIRED_FRONTMATTER,
   SKILL_REQUIRED_SECTIONS,
 } from '../baseline/spec.js';
@@ -52,7 +55,19 @@ function parseFrontmatter(markdown: string): FrontmatterResult {
   }
 }
 
-export function checkSkill(file: string, content: string): Array<Violation> {
+function isValidSkillName(name: string): boolean {
+  return (
+    SKILL_NAME_PATTERN.test(name) &&
+    name.length <= SKILL_NAME_MAX_LENGTH &&
+    !RESERVED_SKILL_NAME_WORDS.some((word) => name.includes(word))
+  );
+}
+
+export function checkSkill(
+  file: string,
+  content: string,
+  expectedName?: string,
+): Array<Violation> {
   const violations: Array<Violation> = [];
 
   const frontmatter = parseFrontmatter(content);
@@ -69,6 +84,24 @@ export function checkSkill(file: string, content: string): Array<Violation> {
         violations.push({
           file,
           message: `frontmatter is missing a non-empty ${key}`,
+        });
+      }
+    }
+
+    const name = frontmatter.data['name'];
+
+    if (typeof name === 'string' && name.trim().length > 0) {
+      const trimmed = name.trim();
+
+      if (!isValidSkillName(trimmed)) {
+        violations.push({
+          file,
+          message: `invalid skill name "${trimmed}" (use lowercase letters, numbers, and hyphens; no @scope; not "claude"/"anthropic")`,
+        });
+      } else if (expectedName !== undefined && trimmed !== expectedName) {
+        violations.push({
+          file,
+          message: `skill name "${trimmed}" must match its directory "${expectedName}"`,
         });
       }
     }

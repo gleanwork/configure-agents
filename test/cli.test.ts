@@ -27,6 +27,10 @@ describe('configure-agents CLI', () => {
     return fs.existsSync(path.join(project.baseDir, relativePath));
   }
 
+  function skill(name = 'fake-project'): string {
+    return `skills/${name}/SKILL.md`;
+  }
+
   it('prints help', async () => {
     const result = await runBin('--help');
 
@@ -57,7 +61,7 @@ describe('configure-agents CLI', () => {
     expect(result.stdout).toMatchInlineSnapshot(`
       "Created AGENTS.md
       Created CLAUDE.md
-      Created skills/SKILL.md
+      Created skills/fake-project/SKILL.md
       Created .github/workflows/agent-baseline.yml
       Created README.md (skills block)"
     `);
@@ -65,7 +69,7 @@ describe('configure-agents CLI', () => {
     for (const file of [
       'AGENTS.md',
       'CLAUDE.md',
-      'skills/SKILL.md',
+      skill(),
       'README.md',
       '.github/workflows/agent-baseline.yml',
     ]) {
@@ -82,7 +86,7 @@ describe('configure-agents CLI', () => {
     expect(result.stdout).toMatchInlineSnapshot(`
       "Skipping AGENTS.md (already exists)
       Skipping CLAUDE.md (already exists)
-      Skipping skills/SKILL.md (already exists)
+      Skipping skills/fake-project/SKILL.md (repo already ships a skill)
       Skipping .github/workflows/agent-baseline.yml (already exists)
       Skipping README.md (skills block up to date)"
     `);
@@ -96,7 +100,7 @@ describe('configure-agents CLI', () => {
       "Planned changes:
         AGENTS.md (create)
         CLAUDE.md (create)
-        skills/SKILL.md (create)
+        skills/fake-project/SKILL.md (create)
         .github/workflows/agent-baseline.yml (create)
         README.md (skills block: created)"
     `);
@@ -106,9 +110,9 @@ describe('configure-agents CLI', () => {
   it('init points the skill at the detected language API surface', async () => {
     await runBin('init', '--repo', 'gleanwork/demo');
 
-    expect(read('skills/SKILL.md')).toMatchInlineSnapshot(`
+    expect(read(skill())).toMatchInlineSnapshot(`
       "---
-      name: "fake-project"
+      name: fake-project
       description: TODO replace with a one-line trigger (what it does plus when to use it) so an agent knows to load this skill when working with fake-project.
       ---
 
@@ -146,15 +150,28 @@ describe('configure-agents CLI', () => {
   it('init --lang overrides detection', async () => {
     await runBin('init', '--lang', 'go', '--repo', 'gleanwork/demo');
 
-    expect(read('skills/SKILL.md')).toContain('godoc');
+    expect(read(skill())).toContain('godoc');
   });
 
   it('init falls back to a generic pointer when no manifest is present', async () => {
     fs.rmSync(path.join(project.baseDir, 'package.json'));
 
-    await runBin('init', '--repo', 'gleanwork/demo');
+    await runBin('init', '--package', 'demo-lib', '--repo', 'gleanwork/demo');
 
-    expect(read('skills/SKILL.md')).toContain('public, typed surface');
+    expect(read(skill('demo-lib'))).toContain('public, typed surface');
+  });
+
+  it('init sanitizes the package name into a valid skill directory', async () => {
+    await runBin(
+      'init',
+      '--package',
+      '@acme/My_Cool.Lib',
+      '--repo',
+      'gleanwork/demo',
+    );
+
+    expect(exists(skill('my-cool-lib'))).toBe(true);
+    expect(read(skill('my-cool-lib'))).toContain('name: my-cool-lib');
   });
 
   // fixturify-project always materializes a package.json from its internal pkg,
@@ -169,10 +186,10 @@ describe('configure-agents CLI', () => {
 
     await runBin('init', '--repo', 'gleanwork/demo');
 
-    const skill = read('skills/SKILL.md');
-    expect(skill).toContain('name: "glean-api-client"');
-    expect(skill).toContain('# glean-api-client');
-    expect(skill).not.toContain('wrong-poetry-name');
+    const content = read(skill('glean-api-client'));
+    expect(content).toContain('name: glean-api-client');
+    expect(content).toContain('# glean-api-client');
+    expect(content).not.toContain('wrong-poetry-name');
   });
 
   it('init resolves the package name from the go.mod module path', async () => {
@@ -183,7 +200,7 @@ describe('configure-agents CLI', () => {
 
     await runBin('init', '--repo', 'gleanwork/demo');
 
-    expect(read('skills/SKILL.md')).toContain('name: "api-client-go"');
+    expect(read(skill('api-client-go'))).toContain('name: api-client-go');
   });
 
   it('init resolves the package name from gradle rootProject.name', async () => {
@@ -194,7 +211,24 @@ describe('configure-agents CLI', () => {
 
     await runBin('init', '--repo', 'gleanwork/demo');
 
-    expect(read('skills/SKILL.md')).toContain('name: "glean-api-client"');
+    expect(read(skill('glean-api-client'))).toContain('name: glean-api-client');
+  });
+
+  it('init does not scaffold a skill when the repo already ships one', async () => {
+    await project.write({
+      skills: {
+        'existing-skill': {
+          'SKILL.md':
+            '---\nname: existing-skill\ndescription: x\n---\n# existing\n',
+        },
+      },
+    });
+
+    const result = await runBin('init', '--repo', 'gleanwork/demo');
+
+    expect(result.stdout).toContain('repo already ships a skill');
+    expect(exists(skill())).toBe(false);
+    expect(exists('skills/existing-skill/SKILL.md')).toBe(true);
   });
 
   it('init writes the skills-install block to the README', async () => {
@@ -244,10 +278,12 @@ describe('configure-agents CLI', () => {
 
     await project.write({
       skills: {
-        'SKILL.md': read('skills/SKILL.md').replace(
-          '## Authoritative API',
-          '## Renamed',
-        ),
+        'fake-project': {
+          'SKILL.md': read(skill()).replace(
+            '## Authoritative API',
+            '## Renamed',
+          ),
+        },
       },
     });
 
@@ -255,11 +291,59 @@ describe('configure-agents CLI', () => {
 
     expect(result.exitCode).toBe(1);
     expect(result.stdout).toMatchInlineSnapshot(`
-      "skills/SKILL.md: missing required section: Authoritative API
+      "skills/fake-project/SKILL.md: missing required section: Authoritative API
 
       Structural checks only; this does not validate skill correctness or freshness.
       Found 1 baseline violation(s)."
     `);
+  });
+
+  it('check flags a flat skills/SKILL.md as the wrong layout', async () => {
+    await runBin('init', '--repo', 'gleanwork/demo');
+    await project.write({ skills: { 'SKILL.md': 'stray flat skill\n' } });
+
+    const result = await runBin('check');
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stdout).toContain('must live in a named directory');
+  });
+
+  it('check flags an invalid skill name', async () => {
+    await runBin('init', '--repo', 'gleanwork/demo');
+    await project.write({
+      skills: {
+        'fake-project': {
+          'SKILL.md': read(skill()).replace(
+            'name: fake-project',
+            'name: Bad_Name',
+          ),
+        },
+      },
+    });
+
+    const result = await runBin('check');
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stdout).toContain('invalid skill name');
+  });
+
+  it('check flags a skill whose name does not match its directory', async () => {
+    await runBin('init', '--repo', 'gleanwork/demo');
+    await project.write({
+      skills: {
+        'fake-project': {
+          'SKILL.md': read(skill()).replace(
+            'name: fake-project',
+            'name: other-name',
+          ),
+        },
+      },
+    });
+
+    const result = await runBin('check');
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stdout).toContain('must match its directory');
   });
 
   it('check fails when the README is missing the skills block', async () => {
@@ -279,9 +363,9 @@ describe('configure-agents CLI', () => {
     expect(result.stdout).toMatchInlineSnapshot(`
       "AGENTS.md: file is missing
       CLAUDE.md: file is missing
-      skills/SKILL.md: file is missing
       README.md: file is missing
       .github/workflows/agent-baseline.yml: file is missing
+      skills/: no skill found (expected skills/<name>/SKILL.md)
 
       Structural checks only; this does not validate skill correctness or freshness.
       Found 5 baseline violation(s)."
@@ -392,6 +476,6 @@ describe('configure-agents CLI', () => {
 
     expect(result.stdout).toContain('needs migration');
     expect(exists('AGENTS.md')).toBe(false);
-    expect(exists('skills/SKILL.md')).toBe(true);
+    expect(exists(skill())).toBe(true);
   });
 });

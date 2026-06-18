@@ -1,6 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { WORKFLOW_PATH } from '../baseline/spec.js';
+import {
+  SKILLS_DIR,
+  SKILL_FILE,
+  SKILL_NAME_MAX_LENGTH,
+  WORKFLOW_PATH,
+} from '../baseline/spec.js';
 import {
   apiPointerForLanguages,
   detectLanguages,
@@ -147,13 +152,30 @@ function resolvePackageName(options: BuildOptions): string {
   );
 }
 
+// Derive a valid skill name from a package name: drop the @scope, lowercase,
+// and collapse anything outside [a-z0-9] into single hyphens.
+function toSkillName(packageName: string): string {
+  const slug = packageName
+    .replace(/^@[^/]+\//, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, SKILL_NAME_MAX_LENGTH)
+    .replace(/-+$/g, '');
+
+  return slug.length > 0 ? slug : 'skill';
+}
+
 export async function buildInitFiles(
   options: BuildOptions,
 ): Promise<Array<InitFile>> {
   const languages = resolveLanguages(options);
+  const packageName = resolvePackageName(options);
+  const skillName = toSkillName(packageName);
 
   const variables = {
-    packageName: resolvePackageName(options),
+    packageName,
+    skillName,
     apiPointer: apiPointerForLanguages(languages),
   };
 
@@ -165,7 +187,7 @@ export async function buildInitFiles(
   return [
     { path: 'AGENTS.md', content: agents },
     { path: 'CLAUDE.md', content: claude },
-    { path: 'skills/SKILL.md', content: skill },
+    { path: `${SKILLS_DIR}/${skillName}/${SKILL_FILE}`, content: skill },
     { path: WORKFLOW_PATH, content: workflow },
   ];
 }

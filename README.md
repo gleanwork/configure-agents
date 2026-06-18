@@ -4,7 +4,7 @@
 
 ## Why
 
-1. **Teach consumers' AI to use our libraries.** Each opted-in repo carries a `skills/SKILL.md` that teaches a consuming AI how to use that library correctly, so we stop hand-feeding the same context. Distribution is handled by [`skills.sh`](https://skills.sh) fetching from GitHub — this tool owns none of it.
+1. **Teach consumers' AI to use our libraries.** Each opted-in repo carries a skill under `skills/` (one directory per skill: `skills/<name>/SKILL.md`) that teaches a consuming AI how to use that library correctly, so we stop hand-feeding the same context. Distribution is handled by [`skills.sh`](https://skills.sh) fetching from GitHub — this tool owns none of it.
 2. **Consistency across repos.** A uniform structure plus a scaffold to create it and a CI check to sustain it is what makes the setup maintainable across many repos.
 
 ## The baseline
@@ -13,7 +13,7 @@ Each opted-in repo gets:
 
 - `AGENTS.md` — the repo's real agent instructions.
 - `CLAUDE.md` — a thin pointer to `AGENTS.md`.
-- `skills/SKILL.md` — teaches a consuming AI to use the library; distributed via `skills.sh`.
+- `skills/<name>/SKILL.md` — teaches a consuming AI to use the library; distributed via `skills.sh`.
 - `.github/workflows/agent-baseline.yml` — CI that runs the drift check on every PR.
 
 <!-- configure-agents:skills start -->
@@ -37,7 +37,7 @@ Once it's installed, ask your agent to onboard a repo (below) — you won't invo
 The intended path is AI-driven, through the `configure-agents` skill installed above. Ask the AI to onboard a repo; it will:
 
 1. **Scaffold** — `npx -y @gleanwork/configure-agents init`
-2. **Author** `skills/SKILL.md` against the rubric (the one rule below)
+2. **Author** the skill (`skills/<name>/SKILL.md`) against the rubric (the one rule below)
 3. **Verify** — `npx -y @gleanwork/configure-agents check`
 4. **Open a PR** with the result
 
@@ -57,7 +57,7 @@ Scaffolds the baseline into the current repo. Idempotent: it creates missing fil
 
 Verifies the baseline structure and exits non-zero on violations (used by CI).
 
-It checks, **structurally only**, that: the required files exist; `skills/SKILL.md` has `name`/`description` frontmatter and the required sections; `AGENTS.md` has its required sections; and `CLAUDE.md` references `AGENTS.md`. It does **not** — and cannot — validate that the skill's content is correct or current. That is the job of the rubric and of review.
+It checks, **structurally only**, that: the required files exist; at least one `skills/<name>/SKILL.md` exists, each with valid `name`/`description` frontmatter and the required sections; `AGENTS.md` has its required sections; and `CLAUDE.md` imports `AGENTS.md`. It does **not** — and cannot — validate that the skill's content is correct or current. That is the job of the rubric and of review.
 
 ### `migrate`
 
