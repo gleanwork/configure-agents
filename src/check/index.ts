@@ -8,10 +8,12 @@ import {
 } from '../baseline/spec.js';
 import { checkAgents, checkClaude, checkReadme, checkSkill } from './rules.js';
 import type { Violation } from '../types/index.js';
+import { checkReview, isReviewEnabled } from '../review/index.js';
 
 export interface CheckOptions {
   repoDir?: string;
   json?: boolean;
+  reviewOnly?: boolean;
 }
 
 export interface CheckResult {
@@ -95,6 +97,10 @@ export async function checkRepo(
 
   const violations: Array<Violation> = [];
 
+  if (options.reviewOnly) {
+    return { violations: await checkReview(repoDir) };
+  }
+
   for (const relativePath of REQUIRED_FILES) {
     const content = await readFileOrNull(path.join(repoDir, relativePath));
 
@@ -117,6 +123,10 @@ export async function checkRepo(
   }
 
   violations.push(...(await checkSkillsLayout(repoDir)));
+
+  if (await isReviewEnabled(repoDir)) {
+    violations.push(...(await checkReview(repoDir)));
+  }
 
   return { violations };
 }

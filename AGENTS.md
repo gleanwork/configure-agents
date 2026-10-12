@@ -12,6 +12,8 @@ Agent instructions for `@gleanwork/configure-agents` — the CLI that scaffolds 
 
 This is an ESM project with `module: nodenext`, so relative imports use `.js` extensions even though the files are `.ts`.
 
+The review module (`configure-agents review`) lives in `src/review/`. Its permission presets and Codex compiler in `src/review/permissions.ts` match the runtime copy in the `scalvert` agent plugin. `test/fixtures/presets.json` and `test/fixtures/draft-pr.rules` pin that shared contract, so change both repos together.
+
 The single source of truth for the baseline is `src/baseline/spec.ts`. `init` writes the baseline and `check` enforces it from the same lists — change them together. Scaffold templates live in `src/init/templates/files/` and are copied into `build/` at build time.
 
 ## Skills
