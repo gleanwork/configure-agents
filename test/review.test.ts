@@ -199,6 +199,20 @@ describe('configure-agents review', () => {
     );
   });
 
+  it('warns when git ignores the settings file', async () => {
+    const { execFileSync } = await import('node:child_process');
+
+    execFileSync('git', ['init', '-q'], { cwd: project.baseDir });
+    await project.write({ '.gitignore': '.claude/\n' });
+
+    const result = await runBin('review');
+
+    expect(result.stdout).toContain(
+      'Warning: git ignores .claude/settings.json (.gitignore:1:.claude/)',
+    );
+    expect(result.stdout).toContain('git add -f .claude/settings.json');
+  });
+
   it('--dryRun writes nothing', async () => {
     const result = await runBin('review', '--dryRun');
 

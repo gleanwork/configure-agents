@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -199,6 +200,33 @@ export async function reviewRepo(options: ReviewOptions = {}): Promise<void> {
 
   for (const action of actions) {
     console.log(action);
+  }
+
+  const ignoredBy = gitIgnoreSource(repoDir, SETTINGS_PATH);
+
+  if (ignoredBy) {
+    console.log(
+      `Warning: git ignores ${SETTINGS_PATH} (${ignoredBy}). Commit it with \`git add -f ${SETTINGS_PATH}\`, or add \`!${SETTINGS_PATH}\` to .gitignore, so the rules reach other contributors.`,
+    );
+  }
+}
+
+// The rule that makes git ignore a path, or undefined. A global gitignore
+// often ignores .claude/, which would keep the repo's rules out of the repo.
+function gitIgnoreSource(
+  repoDir: string,
+  relativePath: string,
+): string | undefined {
+  try {
+    const out = execFileSync('git', ['check-ignore', '-v', relativePath], {
+      cwd: repoDir,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+
+    return out.split('\t')[0] || undefined;
+  } catch {
+    return undefined;
   }
 }
 
