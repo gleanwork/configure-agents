@@ -1,0 +1,22 @@
+# REVIEW.md
+
+Rules for reviewing changes in this repository. People and review agents both follow this file. Replace the examples in angle brackets with this repository's rules, and delete any that do not apply.
+
+## Always check
+
+- <A rule specific to this repository. For example: "A public API change updates the skill under skills/.">
+
+## Flag only when
+
+- <The condition that makes a finding worth raising. For example: "a change alters behavior, not only style.">
+
+## Skip
+
+- Generated files: <paths>.
+- Formatting the formatter already handles.
+
+## Severity
+
+- **Blocker:** wrong behavior, data loss, a security problem, or a broken public contract.
+- **Should fix:** changed behavior without a test, or an unclear name in a public API.
+- **Nit:** anything else. Group nits together and never block on them.

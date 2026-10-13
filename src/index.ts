@@ -5,6 +5,7 @@ import { VERSION } from './common/version.js';
 import { initializeRepo } from './init/index.js';
 import { checkRepo } from './check/index.js';
 import { migrateRepo } from './migrate/index.js';
+import { reviewRepo } from './review/index.js';
 
 const STRUCTURAL_NOTICE =
   'Structural checks only; this does not validate skill correctness or freshness.';
@@ -14,14 +15,20 @@ interface InitCliOptions {
   package?: string;
   repo?: string;
   dryRun?: boolean;
+  review?: boolean;
+  autonomy?: string;
 }
 
 interface CheckCliOptions {
   json?: boolean;
+  reviewOnly?: boolean;
 }
 
 async function runCheck(options: CheckCliOptions): Promise<void> {
-  const { violations } = await checkRepo({ json: Boolean(options.json) });
+  const { violations } = await checkRepo({
+    json: Boolean(options.json),
+    reviewOnly: Boolean(options.reviewOnly),
+  });
 
   if (options.json) {
     console.log(JSON.stringify({ violations }, null, 2));
@@ -71,6 +78,14 @@ async function main(): Promise<void> {
       'owner/repo slug for the skills-install docs (defaults to the git remote)',
     )
     .option('--dryRun', 'Show what would be created without writing anything')
+    .option(
+      '--review',
+      'Also scaffold the review module (see the review command)',
+    )
+    .option(
+      '--autonomy <level>',
+      'Permission preset for --review: local-only, draft-pr or self-merge',
+    )
     .action(async (options: InitCliOptions) => {
       try {
         await initializeRepo({
@@ -79,6 +94,13 @@ async function main(): Promise<void> {
           repo: options.repo,
           dryRun: Boolean(options.dryRun),
         });
+
+        if (options.review) {
+          await reviewRepo({
+            autonomy: options.autonomy,
+            dryRun: Boolean(options.dryRun),
+          });
+        }
       } catch (error: any) {
         console.error(`init failed: ${error.message}`);
         process.exit(1);
@@ -101,9 +123,35 @@ async function main(): Promise<void> {
     });
 
   program
+    .command('review')
+    .description(
+      'Scaffold agent permission rules, AGENTS.md review sections, REVIEW.md and Codex rules (idempotent)',
+    )
+    .option(
+      '--autonomy <level>',
+      'Permission preset: local-only, draft-pr (default) or self-merge',
+    )
+    .option('--dryRun', 'Show what would change without writing anything')
+    .action(async (options: { autonomy?: string; dryRun?: boolean }) => {
+      try {
+        await reviewRepo({
+          autonomy: options.autonomy,
+          dryRun: Boolean(options.dryRun),
+        });
+      } catch (error: any) {
+        console.error(`review failed: ${error.message}`);
+        process.exit(1);
+      }
+    });
+
+  program
     .command('check')
     .description('Verify the agent baseline structure (exit 1 on violations)')
     .option('--json', 'Output violations as JSON')
+    .option(
+      '--review-only',
+      'Check only the review module (for repos without the library baseline)',
+    )
     .action(async (options: CheckCliOptions) => {
       try {
         await runCheck(options);

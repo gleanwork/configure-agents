@@ -52,12 +52,34 @@ Scaffolds the baseline into the current repo. Idempotent: it creates missing fil
 - `--lang <ts|python|go|java>` — override language detection (otherwise detected from the repo's manifest)
 - `--package <name>` — package name for the templates (defaults to the detected manifest name)
 - `--dryRun` — show what would be created without writing anything
+- `--review` — also run `review` (below); `--autonomy <level>` picks its preset
+
+### `review`
+
+Sets what coding agents may do in the repo without asking, and how changes are reviewed. Any repo can use it, including repos without the library baseline. Idempotent. It writes:
+
+- **Permission rules** in `.claude/settings.json`, in Claude Code's permission syntax. No cross-agent standard exists yet, and this is the most widely copied format. Existing rules are kept as they are.
+- **`AGENTS.md` sections**, generated from those rules: "Ask first", "Never" and a pointer to `REVIEW.md`. Agents that don't read `.claude/settings.json` see the same rules here. A "Commit and PR guidelines" section is added once for you to fill in.
+- **`REVIEW.md`**, a template for the repo's review rules.
+- **`.codex/rules/permissions.rules`**, the rules compiled to Codex prefix rules. Codex loads them in trusted projects.
+
+`--autonomy` picks the preset written when the repo has no rules yet:
+
+| Preset               | Agents may                            | Agents ask first for                                                             |
+| -------------------- | ------------------------------------- | -------------------------------------------------------------------------------- |
+| `local-only`         | work locally                          | any push or PR                                                                   |
+| `draft-pr` (default) | push feature branches, open draft PRs | comment, review, merge, release, publish, force push, push to the default branch |
+| `self-merge`         | the above, plus merge and mark ready  | comment, review, release, publish, force push, push to the default branch        |
+
+To change the rules, edit `.claude/settings.json` and run `review` again. `check` fails if the `AGENTS.md` sections or the Codex rules no longer match.
 
 ### `check`
 
 Verifies the baseline structure and exits non-zero on violations (used by CI).
 
 It checks, **structurally only**, that: the required files exist; at least one `skills/<name>/SKILL.md` exists, each with valid `name`/`description` frontmatter and the required sections; `AGENTS.md` has its required sections; and `CLAUDE.md` imports `AGENTS.md`. It does **not** — and cannot — validate that the skill's content is correct or current. That is the job of the rubric and of review.
+
+In a repo with `REVIEW.md` or the generated review sections, `check` also verifies the review module: valid permission rules, `AGENTS.md` sections and Codex rules that match them, a "Commit and PR guidelines" section, and `REVIEW.md`. `--review-only` checks just the review module, for repos without the library baseline.
 
 ### `migrate`
 

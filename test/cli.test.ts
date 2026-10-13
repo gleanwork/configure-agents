@@ -49,6 +49,8 @@ describe('configure-agents CLI', () => {
         init [options]     Scaffold the agent baseline into a repository (idempotent)
         migrate [options]  Promote an existing CLAUDE.md to AGENTS.md and leave a
                            pointer (for repos set up before this baseline)
+        review [options]   Scaffold agent permission rules, AGENTS.md review sections,
+                           REVIEW.md and Codex rules (idempotent)
         check [options]    Verify the agent baseline structure (exit 1 on violations)
         help [command]     display help for command"
     `);
