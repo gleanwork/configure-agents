@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Violation } from '../types/index.js';
+import { formatJson } from './json.js';
 import {
   CODEX_RULES_PATH,
   DEFAULT_AUTONOMY,
@@ -137,10 +138,7 @@ export async function reviewRepo(options: ReviewOptions = {}): Promise<void> {
     );
 
     if (!options.dryRun) {
-      await write(
-        path.join(repoDir, SETTINGS_PATH),
-        `${JSON.stringify(next, null, 2)}\n`,
-      );
+      await write(path.join(repoDir, SETTINGS_PATH), formatJson(next));
     }
   }
 

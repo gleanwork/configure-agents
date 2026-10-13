@@ -80,6 +80,27 @@ describe('permission presets and compiler', () => {
     expect(rules).not.toContain('main');
   });
 
+  it('writes settings JSON exactly as Prettier formats it', async () => {
+    const prettier = await import('prettier');
+    const { formatJson } = await import('../src/review/json.js');
+
+    for (const value of [
+      { permissions: PRESETS['draft-pr'] },
+      { permissions: PRESETS['self-merge'] },
+      { permissions: PRESETS['local-only'] },
+      {
+        env: { A: '1' },
+        nested: { list: [1, 2], empty: [], obj: {} },
+        permissions: PRESETS['draft-pr'],
+      },
+    ]) {
+      const ours = formatJson(value);
+
+      expect(ours).toBe(await prettier.format(ours, { parser: 'json' }));
+      expect(JSON.parse(ours)).toEqual(value);
+    }
+  });
+
   it('rejects invalid permission blocks', () => {
     expect(() => parsePermissions([])).toThrow();
     expect(() => parsePermissions({ ask: 'Bash(x)' })).toThrow();
